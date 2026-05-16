@@ -22,14 +22,17 @@ export default function RootLayout({ children }) {
         </div>
         <footer style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
-          padding: '8px 16px',
+          padding: '10px 16px',
           background: '#0a0a0a',
           borderTop: '1px solid #222',
-          fontSize: 11,
-          color: '#888',
+          fontSize: 12,
+          color: '#aaa',
           textAlign: 'center',
+          lineHeight: 1.4,
         }}>
-          Segnalazioni della community. Acquista sempre un biglietto valido. Non siamo affiliati a Trenord.
+          Segnalazioni della community. <strong>Acquista sempre un biglietto valido.</strong> Non siamo affiliati a Trenord.
+          {' '}
+          <a href="/privacy" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>Privacy</a>
         </footer>
       </body>
     </html>
