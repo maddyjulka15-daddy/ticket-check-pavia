@@ -16,6 +16,7 @@ function getDeviceId() {
 }
 
 const COOLDOWN_MS = 15 * 60 * 1000;
+const UNDO_WINDOW_MS = 2 * 60 * 1000; // 2 minutes to undo
 
 export default function TrainView({ trainNumber }) {
   const [count, setCount] = useState(0);
@@ -24,6 +25,9 @@ export default function TrainView({ trainNumber }) {
   const [stops, setStops] = useState([]);
   const [info, setInfo] = useState(null);
   const [stopsLoading, setStopsLoading] = useState(true);
+  const [lastReportId, setLastReportId] = useState(null);
+  const [lastReportTime, setLastReportTime] = useState(0);
+  const [nowTs, setNowTs] = useState(Date.now());
 
   const loadCount = useCallback(async () => {
     const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -51,12 +55,20 @@ export default function TrainView({ trainNumber }) {
   useEffect(() => {
     loadCount();
     loadStops();
+    // restore last report info from localStorage if still within undo window
+    const storedId = localStorage.getItem(`last_report_id_${trainNumber}`);
+    const storedTime = parseInt(localStorage.getItem(`last_report_${trainNumber}`) || '0', 10);
+    if (storedId && Date.now() - storedTime < UNDO_WINDOW_MS) {
+      setLastReportId(storedId);
+      setLastReportTime(storedTime);
+    }
     const channel = supabase
       .channel(`train-${trainNumber}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reports', filter: `train_number=eq.${trainNumber}` }, () => loadCount())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports', filter: `train_number=eq.${trainNumber}` }, () => loadCount())
       .subscribe();
     const t = setInterval(loadStops, 120000);
-    return () => { supabase.removeChannel(channel); clearInterval(t); };
+    const tick = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => { supabase.removeChannel(channel); clearInterval(t); clearInterval(tick); };
   }, [trainNumber, loadCount, loadStops]);
 
   async function submit() {
@@ -71,20 +83,51 @@ export default function TrainView({ trainNumber }) {
       setSubmitting(false);
       return;
     }
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('reports')
-      .insert({ train_number: trainNumber, device_id: deviceId });
+      .insert({ train_number: trainNumber, device_id: deviceId })
+      .select()
+      .single();
     if (error) {
       setMessage('Error. Try again.');
     } else {
-      localStorage.setItem(key, String(Date.now()));
+      const now = Date.now();
+      localStorage.setItem(key, String(now));
+      localStorage.setItem(`last_report_id_${trainNumber}`, data.id);
+      setLastReportId(data.id);
+      setLastReportTime(now);
       setMessage('Report sent. Thank you!');
       loadCount();
     }
     setSubmitting(false);
   }
 
+  async function undo() {
+    if (!lastReportId) return;
+    setSubmitting(true);
+    setMessage(null);
+    const { error } = await supabase
+      .from('reports')
+      .delete()
+      .eq('id', lastReportId);
+    if (error) {
+      setMessage('Could not undo. Try again.');
+    } else {
+      localStorage.removeItem(`last_report_${trainNumber}`);
+      localStorage.removeItem(`last_report_id_${trainNumber}`);
+      setLastReportId(null);
+      setLastReportTime(0);
+      setMessage('Report cancelled.');
+      loadCount();
+    }
+    setSubmitting(false);
+  }
+
   const lvl = alertLevel(count);
+  const undoSecondsLeft = lastReportId
+    ? Math.max(0, Math.ceil((UNDO_WINDOW_MS - (nowTs - lastReportTime)) / 1000))
+    : 0;
+  const canUndo = undoSecondsLeft > 0;
 
   return (
     <main>
@@ -121,15 +164,30 @@ export default function TrainView({ trainNumber }) {
 
       <button
         onClick={submit}
-        disabled={submitting}
+        disabled={submitting || canUndo}
         style={{
           width: '100%', padding: '20px', fontSize: 18, fontWeight: 700,
-          background: '#dc2626', color: '#fff', border: 'none', borderRadius: 12,
-          cursor: 'pointer', opacity: submitting ? 0.6 : 1,
+          background: canUndo ? '#444' : '#dc2626', color: '#fff', border: 'none', borderRadius: 12,
+          cursor: (submitting || canUndo) ? 'not-allowed' : 'pointer',
+          opacity: submitting ? 0.6 : 1,
         }}
       >
         🚨 Inspector on board
       </button>
+
+      {canUndo && (
+        <button
+          onClick={undo}
+          disabled={submitting}
+          style={{
+            width: '100%', marginTop: 10, padding: '14px', fontSize: 15, fontWeight: 600,
+            background: 'transparent', color: '#fbbf24', border: '2px solid #fbbf24',
+            borderRadius: 12, cursor: submitting ? 'not-allowed' : 'pointer',
+          }}
+        >
+          ↩️ Undo report ({undoSecondsLeft}s)
+        </button>
+      )}
 
       {message && (
         <p style={{ marginTop: 16, padding: 12, background: '#1a1a1a', borderRadius: 8, color: '#aaa', textAlign: 'center' }}>
