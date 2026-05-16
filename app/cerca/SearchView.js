@@ -6,14 +6,36 @@ import { STATIONS } from '@/lib/stations';
 import { supabase } from '@/lib/supabase';
 import { alertLevel } from '@/lib/level';
 
+const TOWARD_PAVIA = ['pavia','voghera','mortara','alessandria','genova','sestri','ventimiglia','tortona','arquata','novi ligure','la spezia','albairate','vermezzo'];
+const TOWARD_MILANO = ['milano','centrale','garibaldi','rogoredo','bovisa','greco','lambrate','cadorna','domodossola','luino','varese','como','lecco','sondrio','tirano','bergamo','brescia','verona','venezia','bologna','garbagnate'];
+const TOWARD_MALPENSA = ['malpensa','aeroporto','t1','t2','gallarate','busto','arsizio','rho','saronno','luino','laveno'];
+
+function matchesDestination(destination, toSlug, toName) {
+  if (!destination) return false;
+  const d = destination.toLowerCase();
+  const tName = (toName || '').toLowerCase();
+  if (tName.length > 3 && d.includes(tName)) return true;
+  if (toSlug === 'pavia' || toSlug === 'voghera' || toSlug === 'mortara') {
+    return TOWARD_PAVIA.some(k => d.includes(k));
+  }
+  if (toSlug.startsWith('milano')) {
+    return TOWARD_MILANO.some(k => d.includes(k));
+  }
+  if (toSlug.startsWith('malpensa') || toSlug === 'gallarate' || toSlug === 'saronno') {
+    return TOWARD_MALPENSA.some(k => d.includes(k));
+  }
+  return false;
+}
+
 export default function SearchView({ fromSlug, toSlug }) {
   const fromStation = STATIONS[fromSlug];
   const toStation = STATIONS[toSlug];
-  const [trains, setTrains] = useState([]);
+  const [allTrains, setAllTrains] = useState([]);
   const [reports, setReports] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [showAll, setShowAll] = useState(false);
 
   const loadTrains = useCallback(async () => {
     if (!fromStation || !toStation) {
@@ -22,10 +44,9 @@ export default function SearchView({ fromSlug, toSlug }) {
       return;
     }
     try {
-      const u = `/api/route?from=${fromStation.code}&to=${toStation.code}&toName=${encodeURIComponent(toStation.name)}&toSlug=${toSlug}`;
-      const res = await fetch(u, { cache: 'no-store' });
+      const res = await fetch(`/api/departures/${fromStation.code}`, { cache: 'no-store' });
       const data = await res.json();
-      setTrains(data.trains || []);
+      setAllTrains(data.trains || []);
       setUpdatedAt(new Date());
       setError(null);
     } catch (e) {
@@ -65,22 +86,37 @@ export default function SearchView({ fromSlug, toSlug }) {
     );
   }
 
+  const matched = allTrains.filter(t => matchesDestination(t.destination, toSlug, toStation.name));
+  const trains = showAll ? allTrains : (matched.length > 0 ? matched : allTrains);
+  const noMatchButHasTrains = matched.length === 0 && allTrains.length > 0 && !showAll;
+
   return (
     <main>
       <Link href="/" style={{ color: '#888', textDecoration: 'none' }}>← Cerca</Link>
       <h1 style={{ fontSize: 22, margin: '12px 0 4px' }}>
         {fromStation.name} → {toStation.name}
       </h1>
-      <p style={{ color: '#aaa', fontSize: 13, margin: '0 0 16px' }}>
+      <p style={{ color: '#aaa', fontSize: 13, margin: '0 0 4px' }}>
         Partenze in tempo reale
         {updatedAt && <> · agg. {updatedAt.toLocaleTimeString('it-IT').slice(0,5)}</>}
       </p>
+      <p style={{ color: '#555', fontSize: 11, margin: '0 0 16px' }}>
+        {matched.length > 0 && !showAll
+          ? `${matched.length} treni verso ${toStation.name}`
+          : `Tutte le partenze da ${fromStation.name}`}
+      </p>
+
+      {noMatchButHasTrains && (
+        <div style={{ background: '#2a2a2a', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 13, color: '#fbbf24' }}>
+          ⚠️ Nessun treno diretto trovato per {toStation.name}. Ti mostriamo tutte le partenze — controlla manualmente quale ti serve.
+        </div>
+      )}
 
       {loading && <div style={{ color: '#888', padding: 24, textAlign: 'center' }}>Caricamento…</div>}
 
-      {!loading && trains.length === 0 && (
+      {!loading && allTrains.length === 0 && (
         <div style={{ background: '#1a1a1a', padding: 24, borderRadius: 12, textAlign: 'center', color: '#888' }}>
-          Nessun treno diretto trovato. Prova un'altra tratta o riprova più tardi.
+          Nessun treno in partenza. Riprova più tardi.
         </div>
       )}
 
@@ -90,7 +126,19 @@ export default function SearchView({ fromSlug, toSlug }) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+      {matched.length > 0 && (
+        <button
+          onClick={() => setShowAll(s => !s)}
+          style={{
+            background: 'transparent', color: '#7dd3fc', border: '1px solid #2a2a2a',
+            padding: '6px 10px', borderRadius: 6, fontSize: 12, marginBottom: 12, cursor: 'pointer',
+          }}
+        >
+          {showAll ? `Solo verso ${toStation.name}` : 'Mostra tutte le partenze'}
+        </button>
+      )}
+
+      <div style={{ display: 'grid', gap: 10 }}>
         {trains.map((t) => {
           const count = reports[t.train_number] || 0;
           const lvl = alertLevel(count);
@@ -119,7 +167,7 @@ export default function SearchView({ fromSlug, toSlug }) {
                 </div>
               </div>
               <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
-                → {t.to_name}
+                → {t.destination}
                 {t.platform && <span style={{ marginLeft: 8, color: '#666' }}>Bin. {t.platform}</span>}
               </div>
               {count > 0 ? (
