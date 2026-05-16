@@ -25,7 +25,7 @@ export default function Home() {
     <main>
       <h1 style={{ fontSize: 30, margin: '0 0 4px' }}>Ticket Check Pavia</h1>
       <p style={{ color: '#aaa', margin: '0 0 20px', fontSize: 14 }}>
-        Cerca treni Milano · Pavia · Malpensa. Segnalazioni controllori in tempo reale.
+        Cerca treni Milano ↔ Pavia. Segnalazioni controllori in tempo reale.
       </p>
 
       <form onSubmit={search} style={{
