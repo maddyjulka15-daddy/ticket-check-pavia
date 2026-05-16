@@ -28,27 +28,44 @@ async function fetchDepartures(code, date) {
   }
 }
 
-async function fetchStops(trainNumber, originCode) {
-  const url = `http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/tratteCanvas/${originCode}/${trainNumber}`;
-  try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-      cache: 'no-store',
-    });
-    if (!res.ok) return null;
-    const text = await res.text();
-    if (!text || text.trim() === '') return null;
-    return JSON.parse(text);
-  } catch {
-    return null;
+// Hardcoded line knowledge for the MXP↔MI↔PV corridor.
+// Maps destination keywords → list of station codes the train passes through.
+const LINE_DESTINATIONS = {
+  // Southbound from Milano: trains heading toward these pass through Pavia
+  toward_pavia: ['pavia','voghera','mortara','alessandria','genova','sestri','ventimiglia','tortona','arquata','novi ligure','albairate','vermezzo','la spezia'],
+  // Northbound from Pavia: pass through Milano
+  toward_milano: ['milano','centrale','garibaldi','rogoredo','bovisa','greco','lambrate','cadorna','domodossola','luino','varese','como','lecco','sondrio','tirano','bergamo','brescia','verona','venezia','bologna','garbagnate'],
+  // Toward Malpensa from Milano
+  toward_malpensa: ['malpensa','aeroporto','t1','t2','gallarate','busto','arsizio','rho','saronno','luino','laveno','porto ceresio'],
+};
+
+function destinationMatchesTarget(destinazione, toSlug, toName) {
+  if (!destinazione) return false;
+  const d = destinazione.toLowerCase();
+  const tName = (toName || '').toLowerCase();
+
+  // Direct: train terminates AT the target station
+  if (d.includes(tName) && tName.length > 3) return true;
+
+  // Heuristic by target slug
+  if (toSlug === 'pavia' || toSlug.startsWith('certosa') || toSlug.includes('voghera') || toSlug.includes('mortara') || toSlug.includes('san-martino')) {
+    return LINE_DESTINATIONS.toward_pavia.some(k => d.includes(k));
   }
+  if (toSlug.startsWith('milano') || toSlug.startsWith('rogoredo') || toSlug === 'locate-triulzi' || toSlug === 'villamaggiore' || toSlug === 'pieve-emanuele') {
+    return LINE_DESTINATIONS.toward_milano.some(k => d.includes(k));
+  }
+  if (toSlug.startsWith('malpensa') || toSlug === 'rho' || toSlug === 'busto-arsizio' || toSlug === 'gallarate' || toSlug === 'saronno') {
+    return LINE_DESTINATIONS.toward_malpensa.some(k => d.includes(k));
+  }
+  return false;
 }
 
 export async function GET(req) {
   const url = new URL(req.url);
   const from = url.searchParams.get('from');
   const to = url.searchParams.get('to');
-  const toName = (url.searchParams.get('toName') || '').toLowerCase();
+  const toName = url.searchParams.get('toName') || '';
+  const toSlug = url.searchParams.get('toSlug') || '';
   if (!from || !to) {
     return Response.json({ error: 'Missing from or to' }, { status: 400 });
   }
@@ -66,44 +83,27 @@ export async function GET(req) {
       candidates.push(t);
     }
   }
-  candidates.sort((a, b) => (a.orarioPartenza || 0) - (b.orarioPartenza || 0));
 
-  const top = candidates.slice(0, 25);
-  const checked = await Promise.all(top.map(async (t) => {
-    const dest = (t.destinazione || '').toLowerCase();
-    const directMatch = toName && (dest === toName || dest.includes(toName));
-    if (directMatch) {
-      return { ...t, matchedStop: t.destinazione, scheduledArrival: null, viaDirect: true };
-    }
-    const stops = await fetchStops(t.numeroTreno, from);
-    if (!stops || !Array.isArray(stops)) return null;
-    const match = stops.find(s => {
-      const id = s.stazione?.id || s.idFermata || '';
-      const name = (s.stazione?.nomeLungo || s.stazione?.nomeBreve || '').toLowerCase();
-      return id === to || (toName && name === toName);
-    });
-    if (!match) return null;
-    return {
-      ...t,
-      matchedStop: match.stazione?.nomeLungo || match.stazione?.nomeBreve || '',
-      scheduledArrival: match.programmata || match.orarioArrivoProgrammato || null,
-      viaDirect: false,
-    };
-  }));
+  const filtered = candidates.filter(t => destinationMatchesTarget(t.destinazione, toSlug, toName));
+  // If filter returns nothing, fall back to ALL departures so user still sees something
+  const finalList = filtered.length > 0 ? filtered : candidates;
+  finalList.sort((a, b) => (a.orarioPartenza || 0) - (b.orarioPartenza || 0));
 
-  const trains = checked.filter(Boolean).map(t => ({
+  const trains = finalList.map(t => ({
     train_number: String(t.numeroTreno),
     from_name: t.origine || '',
-    to_name: t.matchedStop || t.destinazione || '',
-    final_destination: t.destinazione || '',
+    to_name: t.destinazione || '',
     departure_time: t.compOrarioPartenza || '',
     departure_ts: t.orarioPartenza,
-    arrival_ts: t.scheduledArrival,
     type: t.categoria || t.categoriaDescrizione || '',
     delay_minutes: typeof t.ritardo === 'number' ? t.ritardo : 0,
     platform: t.binarioProgrammatoPartenzaDescrizione || t.binarioEffettivoPartenzaDescrizione || '',
     cancelled: !!t.nonPartito,
   }));
 
-  return Response.json({ trains, fetched_at: now.toISOString() });
+  return Response.json({
+    trains,
+    fetched_at: now.toISOString(),
+    filtered: filtered.length > 0,
+  });
 }

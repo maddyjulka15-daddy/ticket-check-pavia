@@ -22,7 +22,7 @@ export default function SearchView({ fromSlug, toSlug }) {
       return;
     }
     try {
-      const u = `/api/route?from=${fromStation.code}&to=${toStation.code}&toName=${encodeURIComponent(toStation.name)}`;
+      const u = `/api/route?from=${fromStation.code}&to=${toStation.code}&toName=${encodeURIComponent(toStation.name)}&toSlug=${toSlug}`;
       const res = await fetch(u, { cache: 'no-store' });
       const data = await res.json();
       setTrains(data.trains || []);
