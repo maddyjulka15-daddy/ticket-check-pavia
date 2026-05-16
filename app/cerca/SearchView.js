@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { STATIONS } from '@/lib/stations';
 import { supabase } from '@/lib/supabase';
 import { alertLevel } from '@/lib/level';
+import { getBuyLinks } from '@/lib/buyLinks';
 
 const TOWARD_PAVIA = ['pavia','voghera','mortara','alessandria','genova','sestri','ventimiglia','tortona','arquata','novi ligure','la spezia','albairate','vermezzo'];
 const TOWARD_MILANO = ['milano','centrale','garibaldi','rogoredo','bovisa','greco','lambrate','cadorna','domodossola','luino','varese','como','lecco','sondrio','tirano','bergamo','brescia','verona','venezia','bologna','garbagnate'];
@@ -137,6 +138,33 @@ export default function SearchView({ fromSlug, toSlug }) {
           {showAll ? `Only to ${toStation.name}` : 'Show all departures'}
         </button>
       )}
+
+      <div style={{
+        background: '#1a2942', padding: 14, borderRadius: 10, marginBottom: 16,
+        border: '1px solid #2a4a7a',
+      }}>
+        <div style={{ fontSize: 13, color: '#aaa', marginBottom: 8 }}>
+          🎫 Buy ticket for this route
+        </div>
+        <div style={{ display: 'grid', gap: 6 }}>
+          {getBuyLinks(fromSlug, toSlug, fromStation.name, toStation.name).map((link, i) => (
+            <a
+              key={i}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block', padding: '10px 12px',
+                background: '#0a0a0a', borderRadius: 6, textDecoration: 'none',
+                color: '#fff', border: '1px solid #2a2a2a',
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{link.label}</div>
+              <div style={{ color: '#888', fontSize: 11, marginTop: 2 }}>{link.sub}</div>
+            </a>
+          ))}
+        </div>
+      </div>
 
       <div style={{ display: 'grid', gap: 10 }}>
         {trains.map((t) => {
