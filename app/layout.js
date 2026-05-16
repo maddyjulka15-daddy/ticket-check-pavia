@@ -17,22 +17,27 @@ export default function RootLayout({ children }) {
         color: '#f5f5f5',
         minHeight: '100vh',
       }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 16px 80px' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 16px 110px' }}>
           {children}
         </div>
         <footer style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
-          padding: '10px 16px',
-          background: '#0a0a0a',
-          borderTop: '1px solid #222',
-          fontSize: 12,
-          color: '#aaa',
+          padding: '14px 16px',
+          background: '#1a1a1a',
+          borderTop: '2px solid #3b82f6',
+          fontSize: 14,
+          color: '#e5e5e5',
           textAlign: 'center',
-          lineHeight: 1.4,
+          lineHeight: 1.5,
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.5)',
         }}>
-          Segnalazioni della community. <strong>Acquista sempre un biglietto valido.</strong> Non siamo affiliati a Trenord.
-          {' '}
-          <a href="/privacy" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>Privacy</a>
+          <div style={{ marginBottom: 4 }}>
+            ⚠️ <strong>Acquista sempre un biglietto valido.</strong>
+          </div>
+          <div style={{ fontSize: 12, color: '#aaa' }}>
+            Segnalazioni della community · Non affiliati a Trenord ·{' '}
+            <a href="/privacy" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>Privacy</a>
+          </div>
         </footer>
       </body>
     </html>
