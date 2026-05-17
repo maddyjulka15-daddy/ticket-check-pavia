@@ -14,9 +14,10 @@ function getDeviceId() {
   return id;
 }
 
-const COOLDOWN_MS = 15 * 60 * 1000;
+const COOLDOWN_MS = 30 * 60 * 1000;
 const UNDO_WINDOW_MS = 2 * 60 * 1000;
 const ALERT_WINDOW_MS = 60 * 60 * 1000;
+const GLOBAL_KEY = 'bus_last_global';
 
 function freshnessTint(ageMin) {
   if (ageMin < 15) return { color: '#ff453a', label: 'Just now' };
@@ -65,11 +66,10 @@ export default function BusLineView({ line }) {
     setSubmitting(true);
     setMessage(null);
     const deviceId = getDeviceId();
-    const key = `bus_last_${line.id}`;
-    const last = parseInt(localStorage.getItem(key) || '0', 10);
-    if (Date.now() - last < COOLDOWN_MS) {
-      const mins = Math.ceil((COOLDOWN_MS - (Date.now() - last)) / 60000);
-      setMessage(`You already reported. Try again in ${mins} min.`);
+    const lastGlobal = parseInt(localStorage.getItem(GLOBAL_KEY) || '0', 10);
+    if (Date.now() - lastGlobal < COOLDOWN_MS) {
+      const mins = Math.ceil((COOLDOWN_MS - (Date.now() - lastGlobal)) / 60000);
+      setMessage(`You already reported recently. Wait ${mins} min — you can only be on one bus at a time.`);
       setSubmitting(false);
       return;
     }
@@ -86,7 +86,7 @@ export default function BusLineView({ line }) {
       setMessage('Error. Try again.');
     } else {
       const now = Date.now();
-      localStorage.setItem(key, String(now));
+      localStorage.setItem(GLOBAL_KEY, String(now));
       localStorage.setItem(`bus_last_id_${line.id}`, data.id);
       setLastReportId(data.id);
       setLastReportTime(now);
@@ -107,7 +107,7 @@ export default function BusLineView({ line }) {
     if (error) {
       setMessage('Could not undo. Try again.');
     } else {
-      localStorage.removeItem(`bus_last_${line.id}`);
+      localStorage.removeItem(GLOBAL_KEY);
       localStorage.removeItem(`bus_last_id_${line.id}`);
       setLastReportId(null);
       setLastReportTime(0);

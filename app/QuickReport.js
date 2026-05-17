@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { BUS_LINES } from '@/lib/busLines';
 
-const COOLDOWN_MS = 15 * 60 * 1000;
+const GLOBAL_COOLDOWN_MS = 30 * 60 * 1000;
+const GLOBAL_KEY = 'bus_last_global';
 const RECENT_KEY = 'recent_bus_lines';
 
 function getDeviceId() {
@@ -34,34 +35,59 @@ function pushRecentLine(id) {
 
 export default function QuickReport() {
   const [open, setOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(null);
+  const [selectedLine, setSelectedLine] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [recentIds, setRecentIds] = useState([]);
 
   useEffect(() => {
-    if (open) setRecentIds(getRecentLineIds());
+    if (open) {
+      setRecentIds(getRecentLineIds());
+      setSelectedLine(null);
+    }
   }, [open]);
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2500);
+    const t = setTimeout(() => setToast(null), 2800);
     return () => clearTimeout(t);
   }, [toast]);
 
-  async function report(line) {
-    setSubmitting(line.id);
-    const key = `bus_last_${line.id}`;
-    const last = parseInt(localStorage.getItem(key) || '0', 10);
-    if (Date.now() - last < COOLDOWN_MS) {
-      const mins = Math.ceil((COOLDOWN_MS - (Date.now() - last)) / 60000);
-      setToast({ type: 'warn', text: `Already reported Line ${line.id} · try again in ${mins} min` });
-      setSubmitting(null);
+  function checkCooldown() {
+    const last = parseInt(localStorage.getItem(GLOBAL_KEY) || '0', 10);
+    if (Date.now() - last < GLOBAL_COOLDOWN_MS) {
+      const mins = Math.ceil((GLOBAL_COOLDOWN_MS - (Date.now() - last)) / 60000);
+      return mins;
+    }
+    return 0;
+  }
+
+  function pickLine(line) {
+    const wait = checkCooldown();
+    if (wait > 0) {
+      setToast({ type: 'warn', text: `You already reported recently · wait ${wait} min before another report` });
+      return;
+    }
+    if (line.circular) {
+      sendReport(line, null);
+    } else {
+      setSelectedLine(line);
+    }
+  }
+
+  async function sendReport(line, direction) {
+    setSubmitting(true);
+    const wait = checkCooldown();
+    if (wait > 0) {
+      setToast({ type: 'warn', text: `You already reported recently · wait ${wait} min` });
+      setSubmitting(false);
       return;
     }
     const { data, error } = await supabase
       .from('bus_reports')
       .insert({
         line_number: line.id,
+        direction,
         device_id: getDeviceId(),
       })
       .select()
@@ -70,13 +96,13 @@ export default function QuickReport() {
       setToast({ type: 'error', text: 'Could not send report. Try again.' });
     } else {
       const now = Date.now();
-      localStorage.setItem(key, String(now));
+      localStorage.setItem(GLOBAL_KEY, String(now));
       localStorage.setItem(`bus_last_id_${line.id}`, data.id);
       pushRecentLine(line.id);
       setToast({ type: 'ok', text: `Reported on Line ${line.id} · thank you` });
       setOpen(false);
     }
-    setSubmitting(null);
+    setSubmitting(false);
   }
 
   const recentLines = recentIds
@@ -126,72 +152,182 @@ export default function QuickReport() {
               width: 36, height: 5, background: 'rgba(235,235,245,0.3)',
               borderRadius: 3, margin: '0 auto 16px',
             }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h2 style={{
-                fontSize: 22, fontWeight: 700, margin: 0,
-                letterSpacing: '-0.025em',
-              }}>Where did you spot it?</h2>
-              <button
-                onClick={() => setOpen(false)}
-                aria-label="Close"
-                style={{
-                  background: '#2c2c2e', color: '#f5f5f7',
-                  border: 'none', borderRadius: '50%',
-                  width: 30, height: 30, fontSize: 18, lineHeight: 1,
-                  cursor: 'pointer',
-                }}
-              >×</button>
-            </div>
 
-            {recentLines.length > 0 && (
+            {!selectedLine ? (
               <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <h2 style={{
+                    fontSize: 22, fontWeight: 700, margin: 0,
+                    letterSpacing: '-0.025em',
+                  }}>Which line?</h2>
+                  <button
+                    onClick={() => setOpen(false)}
+                    aria-label="Close"
+                    style={{
+                      background: '#2c2c2e', color: '#f5f5f7',
+                      border: 'none', borderRadius: '50%',
+                      width: 30, height: 30, fontSize: 18, lineHeight: 1,
+                      cursor: 'pointer',
+                    }}
+                  >×</button>
+                </div>
+
+                {recentLines.length > 0 && (
+                  <>
+                    <div style={{
+                      fontSize: 11, fontWeight: 600,
+                      color: 'rgba(235, 235, 245, 0.6)', marginBottom: 8,
+                      letterSpacing: '0.06em', textTransform: 'uppercase',
+                    }}>
+                      Recent
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+                      {recentLines.map(line => (
+                        <button
+                          key={line.id}
+                          onClick={() => pickLine(line)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '12px 16px',
+                            background: '#2c2c2e', color: '#f5f5f7',
+                            border: 'none', borderRadius: 12,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span style={{
+                            width: 36, height: 36, borderRadius: 10,
+                            background: '#3a3a3c',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em',
+                          }}>
+                            {line.id}
+                          </span>
+                          <span style={{
+                            fontSize: 14, fontWeight: 500,
+                            maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {line.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
                 <div style={{
                   fontSize: 11, fontWeight: 600,
                   color: 'rgba(235, 235, 245, 0.6)', marginBottom: 8,
                   letterSpacing: '0.06em', textTransform: 'uppercase',
                 }}>
-                  Recent
+                  All bus lines · Pavia
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
-                  {recentLines.map(line => (
-                    <LinePill key={line.id} line={line} onTap={() => report(line)} loading={submitting === line.id} large />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 8 }}>
+                  {BUS_LINES.map(line => (
+                    <button
+                      key={line.id}
+                      onClick={() => pickLine(line)}
+                      style={{
+                        padding: '16px 8px', background: '#2c2c2e',
+                        color: '#f5f5f7', border: 'none', borderRadius: 12,
+                        fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {line.id}
+                    </button>
                   ))}
+                </div>
+
+                <p style={{
+                  fontSize: 12, color: 'rgba(235, 235, 245, 0.5)',
+                  textAlign: 'center', marginTop: 16, marginBottom: 0,
+                }}>
+                  Only one report per 30 min — you can only be on one bus.
+                </p>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <button
+                    onClick={() => setSelectedLine(null)}
+                    style={{
+                      background: 'transparent', color: '#0a84ff',
+                      border: 'none', fontSize: 15, fontWeight: 500,
+                      cursor: 'pointer', padding: 0,
+                    }}
+                  >‹ Back</button>
+                  <button
+                    onClick={() => setOpen(false)}
+                    aria-label="Close"
+                    style={{
+                      background: '#2c2c2e', color: '#f5f5f7',
+                      border: 'none', borderRadius: '50%',
+                      width: 30, height: 30, fontSize: 18, lineHeight: 1,
+                      cursor: 'pointer',
+                    }}
+                  >×</button>
+                </div>
+
+                <div style={{ textAlign: 'center', marginBottom: 18 }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: 14,
+                    background: '#2c2c2e',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 24, fontWeight: 700, letterSpacing: '-0.03em',
+                  }}>
+                    {selectedLine.id}
+                  </div>
+                  <h2 style={{
+                    fontSize: 20, fontWeight: 700, margin: '12px 0 4px',
+                    letterSpacing: '-0.025em',
+                  }}>Line {selectedLine.id}</h2>
+                  <p style={{ color: 'rgba(235, 235, 245, 0.6)', fontSize: 13, margin: 0 }}>
+                    Which direction?
+                  </p>
+                </div>
+
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <button
+                    onClick={() => sendReport(selectedLine, `toward-${selectedLine.terminusA}`)}
+                    disabled={submitting}
+                    style={{
+                      padding: '16px', fontSize: 15, fontWeight: 600,
+                      background: '#2c2c2e', color: '#f5f5f7',
+                      border: 'none', borderRadius: 12,
+                      cursor: submitting ? 'wait' : 'pointer',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    → {selectedLine.terminusA}
+                  </button>
+                  <button
+                    onClick={() => sendReport(selectedLine, `toward-${selectedLine.terminusB}`)}
+                    disabled={submitting}
+                    style={{
+                      padding: '16px', fontSize: 15, fontWeight: 600,
+                      background: '#2c2c2e', color: '#f5f5f7',
+                      border: 'none', borderRadius: 12,
+                      cursor: submitting ? 'wait' : 'pointer',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    → {selectedLine.terminusB}
+                  </button>
+                  <button
+                    onClick={() => sendReport(selectedLine, null)}
+                    disabled={submitting}
+                    style={{
+                      padding: '14px', fontSize: 14, fontWeight: 500,
+                      background: 'transparent', color: 'rgba(235,235,245,0.7)',
+                      border: '1px solid rgba(235,235,245,0.2)', borderRadius: 12,
+                      cursor: submitting ? 'wait' : 'pointer',
+                    }}
+                  >
+                    Not sure
+                  </button>
                 </div>
               </>
             )}
-
-            <div style={{
-              fontSize: 11, fontWeight: 600,
-              color: 'rgba(235, 235, 245, 0.6)', marginBottom: 8,
-              letterSpacing: '0.06em', textTransform: 'uppercase',
-            }}>
-              All bus lines · Pavia
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 8 }}>
-              {BUS_LINES.map(line => (
-                <button
-                  key={line.id}
-                  onClick={() => report(line)}
-                  disabled={submitting === line.id}
-                  style={{
-                    padding: '16px 8px', background: '#2c2c2e',
-                    color: '#f5f5f7', border: 'none', borderRadius: 12,
-                    fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em',
-                    cursor: submitting === line.id ? 'wait' : 'pointer',
-                    opacity: submitting === line.id ? 0.5 : 1,
-                  }}
-                >
-                  {line.id}
-                </button>
-              ))}
-            </div>
-
-            <p style={{
-              fontSize: 12, color: 'rgba(235, 235, 245, 0.5)',
-              textAlign: 'center', marginTop: 16, marginBottom: 0,
-            }}>
-              Tap a line to instantly send a report. For trains, use the main search.
-            </p>
           </div>
         </div>
       )}
@@ -220,37 +356,5 @@ export default function QuickReport() {
         }
       `}</style>
     </>
-  );
-}
-
-function LinePill({ line, onTap, loading, large }) {
-  return (
-    <button
-      onClick={onTap}
-      disabled={loading}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: large ? '12px 16px' : '8px 14px',
-        background: '#2c2c2e', color: '#f5f5f7',
-        border: 'none', borderRadius: 12,
-        cursor: loading ? 'wait' : 'pointer',
-        opacity: loading ? 0.5 : 1,
-      }}
-    >
-      <span style={{
-        width: large ? 36 : 28, height: large ? 36 : 28, borderRadius: 10,
-        background: '#3a3a3c',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: large ? 16 : 13, fontWeight: 700, letterSpacing: '-0.02em',
-      }}>
-        {line.id}
-      </span>
-      <span style={{
-        fontSize: large ? 14 : 13, fontWeight: 500,
-        maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>
-        {line.name}
-      </span>
-    </button>
   );
 }
