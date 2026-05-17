@@ -4,6 +4,21 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { alertLevel } from '@/lib/level';
+import { getBuyLinks } from '@/lib/buyLinks';
+import { STATIONS } from '@/lib/stations';
+
+function titleCase(s) {
+  return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function findSlug(name) {
+  if (!name) return null;
+  const norm = name.toLowerCase().replace(/[.\s_]/g, '');
+  for (const [slug, st] of Object.entries(STATIONS)) {
+    if (st.name.toLowerCase().replace(/[.\s_]/g, '') === norm) return slug;
+  }
+  return null;
+}
 
 function getDeviceId() {
   if (typeof window === 'undefined') return null;
@@ -148,6 +163,38 @@ export default function TrainView({ trainNumber }) {
           {info.lastLocation && <span style={{ color: '#888' }}> · Last seen: {info.lastLocation}</span>}
         </p>
       )}
+
+      {info && info.origin && info.destination && (() => {
+        const fromSlug = findSlug(info.origin);
+        const toSlug = findSlug(info.destination);
+        const fromName = fromSlug ? STATIONS[fromSlug].name : titleCase(info.origin);
+        const toName = toSlug ? STATIONS[toSlug].name : titleCase(info.destination);
+        return (
+          <div style={{ margin: '12px 0 8px' }}>
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>
+              🎫 Buy a ticket
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {getBuyLinks(fromSlug, toSlug, fromName, toName).map((link, i) => (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: '6px 10px', fontSize: 12, fontWeight: 600,
+                    background: '#1a1a1a', borderRadius: 6, textDecoration: 'none',
+                    color: '#7dd3fc', border: '1px solid #2a2a2a',
+                  }}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       <p style={{ color: '#aaa', margin: '12px 0 20px', fontSize: 14 }}>Report if you see an inspector on board.</p>
 
       <div style={{

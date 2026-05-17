@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js';
+
 export const revalidate = 60;
 
 function formatViaggiaTrenoTimestamp(date) {
@@ -30,6 +32,19 @@ async function fetchOne(code, date) {
   }
 }
 
+async function clearReportsForCancelled(trainNumbers) {
+  if (trainNumbers.length === 0) return;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return;
+  try {
+    const sb = createClient(url, key);
+    await sb.from('reports').delete().in('train_number', trainNumbers);
+  } catch {
+    // swallow — not critical
+  }
+}
+
 export async function GET(_req, { params }) {
   const { code } = await params;
   const now = new Date();
@@ -37,11 +52,14 @@ export async function GET(_req, { params }) {
   const results = await Promise.all(windows.map(d => fetchOne(code, d)));
   const seen = new Set();
   const merged = [];
+  const cancelledNumbers = [];
   for (const arr of results) {
     for (const t of arr) {
       const key = `${t.numeroTreno}-${t.orarioPartenza}`;
       if (seen.has(key)) continue;
       seen.add(key);
+      const cancelled = !!t.nonPartito;
+      if (cancelled) cancelledNumbers.push(String(t.numeroTreno));
       merged.push({
         train_number: String(t.numeroTreno),
         destination: t.destinazione || '',
@@ -50,10 +68,23 @@ export async function GET(_req, { params }) {
         type: t.categoria || t.categoriaDescrizione || '',
         delay_minutes: typeof t.ritardo === 'number' ? t.ritardo : 0,
         platform: t.binarioProgrammatoPartenzaDescrizione || t.binarioEffettivoPartenzaDescrizione || '',
-        cancelled: !!t.nonPartito,
+        cancelled,
       });
     }
   }
-  merged.sort((a, b) => (a.departure_ts || 0) - (b.departure_ts || 0));
-  return Response.json({ trains: merged, fetched_at: now.toISOString() });
+
+  // Fire and forget — clear reports for cancelled trains
+  if (cancelledNumbers.length > 0) {
+    clearReportsForCancelled([...new Set(cancelledNumbers)]).catch(() => {});
+  }
+
+  // Filter out cancelled from visible list (or keep with a flag — your choice)
+  const visible = merged.filter(t => !t.cancelled);
+  visible.sort((a, b) => (a.departure_ts || 0) - (b.departure_ts || 0));
+
+  return Response.json({
+    trains: visible,
+    cancelled_count: cancelledNumbers.length,
+    fetched_at: now.toISOString(),
+  });
 }
