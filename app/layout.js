@@ -1,6 +1,15 @@
 export const metadata = {
-  title: 'Ticket Check Pavia',
-  description: 'Community ticket inspector reports for the Milano–Pavia line.',
+  title: 'Occhio',
+  description: 'Community alerts: inspectors on Lombardy trains',
+  appleWebApp: {
+    capable: true,
+    title: 'Occhio',
+    statusBarStyle: 'black-translucent',
+  },
+};
+
+export const viewport = {
+  themeColor: '#dc2626',
 };
 
 export default function RootLayout({ children }) {
