@@ -155,34 +155,43 @@ export default function Home() {
 
       <div style={{
         textAlign: 'center',
-        marginTop: 40,
-        fontSize: 13,
-        fontStyle: 'italic',
-        letterSpacing: '0.05em',
-        fontFamily: '"SF Pro Display", -apple-system, serif',
+        marginTop: 48,
+        marginBottom: 8,
+        fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif',
       }}>
-        <span className="signature-shimmer">
-          created by <strong>Maddy Daddy</strong>
-        </span>
+        <div style={{
+          fontSize: 12, fontWeight: 500,
+          color: 'rgba(235, 235, 245, 0.35)',
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          marginBottom: 6,
+        }}>
+          Created by
+        </div>
+        <div className="signature-shimmer" style={{
+          fontSize: 22, fontWeight: 700,
+          letterSpacing: '-0.03em',
+          display: 'inline-block',
+        }}>
+          Maddy Daddy
+        </div>
       </div>
 
       <style>{`
         .signature-shimmer {
           background: linear-gradient(
             100deg,
-            rgba(235, 235, 245, 0.25) 0%,
-            rgba(235, 235, 245, 0.25) 40%,
-            #f5f5f7 50%,
-            rgba(235, 235, 245, 0.25) 60%,
-            rgba(235, 235, 245, 0.25) 100%
+            rgba(235, 235, 245, 0.4) 0%,
+            rgba(235, 235, 245, 0.4) 35%,
+            #ffffff 50%,
+            rgba(235, 235, 245, 0.4) 65%,
+            rgba(235, 235, 245, 0.4) 100%
           );
           background-size: 200% auto;
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
           color: transparent;
-          animation: signature-shimmer 4s ease-in-out infinite;
-          display: inline-block;
+          animation: signature-shimmer 5s ease-in-out infinite;
         }
         @keyframes signature-shimmer {
           0% { background-position: 200% center; }
