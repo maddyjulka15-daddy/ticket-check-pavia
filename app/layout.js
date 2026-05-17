@@ -1,3 +1,5 @@
+import InstallPrompt from './InstallPrompt';
+
 export const metadata = {
   title: 'Occhio',
   description: 'Community alerts: inspectors on Lombardy trains',
@@ -29,6 +31,7 @@ export default function RootLayout({ children }) {
         <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 16px 110px' }}>
           {children}
         </div>
+        <InstallPrompt />
         <footer style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
           padding: '14px 16px',
