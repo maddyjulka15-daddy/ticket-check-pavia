@@ -7,6 +7,24 @@ import { STATION_LIST } from '@/lib/stations';
 
 const isSpecificMilanStation = (slug) => slug && slug.startsWith('milano-') && slug !== 'milano-all';
 
+const labelStyle = {
+  display: 'block', fontSize: 11, fontWeight: 600,
+  color: 'rgba(235, 235, 245, 0.6)', marginBottom: 8,
+  letterSpacing: '0.06em', textTransform: 'uppercase',
+};
+
+const selectStyle = {
+  width: '100%', padding: '14px 16px', fontSize: 17, fontWeight: 500,
+  background: '#2c2c2e', color: '#f5f5f7',
+  border: 'none', borderRadius: 12,
+  appearance: 'none', WebkitAppearance: 'none',
+  backgroundImage: 'url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%276%27 viewBox=%270 0 10 6%27%3E%3Cpath fill=%27%23f5f5f7%27 d=%27M5 6L0 0h10z%27/%3E%3C/svg%3E")',
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 18px center',
+  backgroundSize: '10px 6px',
+  paddingRight: 40,
+};
+
 export default function Home() {
   const router = useRouter();
   const [from, setFrom] = useState('milano-centrale');
@@ -22,7 +40,7 @@ export default function Home() {
     }
     if ((from === 'milano-all' && isSpecificMilanStation(to)) ||
         (to === 'milano-all' && isSpecificMilanStation(from))) {
-      setError("'Milan (all stations)' can't be combined with a specific Milan station. Pick a non-Milan destination.");
+      setError("Milan (all stations) can't be combined with a specific Milan station.");
       return;
     }
     router.push(`/cerca?from=${from}&to=${to}`);
@@ -36,94 +54,97 @@ export default function Home() {
 
   return (
     <main>
-      <h1 style={{ fontSize: 30, margin: '0 0 4px' }}>Occhio</h1>
-      <p style={{ color: '#aaa', margin: '0 0 20px', fontSize: 14 }}>
-        Search trains and see live inspector alerts.
+      <h1 style={{
+        fontSize: 40, fontWeight: 700, margin: '8px 0 6px',
+        letterSpacing: '-0.03em',
+      }}>Occhio</h1>
+      <p style={{
+        color: 'rgba(235, 235, 245, 0.6)', margin: '0 0 28px',
+        fontSize: 15, lineHeight: 1.4,
+      }}>
+        Live train departures and community alerts for Lombardy.
       </p>
 
       <form onSubmit={search} style={{
-        background: '#1a1a1a', padding: 16, borderRadius: 12, marginBottom: 24,
-        border: '1px solid #2a2a2a',
+        background: '#1c1c1e', padding: '20px 18px',
+        borderRadius: 16, marginBottom: 24,
       }}>
-        <label style={{ display: 'block', fontSize: 12, color: '#888', marginBottom: 4 }}>FROM</label>
-        <select
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          style={{
-            width: '100%', padding: 12, fontSize: 16, marginBottom: 12,
-            background: '#0a0a0a', color: '#fff', border: '1px solid #333', borderRadius: 8,
-          }}
-        >
-          <option value="milano-all">🏙️ Milan (all stations)</option>
+        <label style={labelStyle}>From</label>
+        <select value={from} onChange={(e) => setFrom(e.target.value)} style={selectStyle}>
+          <option value="milano-all">Milan (all stations)</option>
           {STATION_LIST.map(s => <option key={s.slug} value={s.slug}>{s.name}</option>)}
         </select>
 
         <button
           type="button"
           onClick={swap}
+          aria-label="Swap"
           style={{
-            display: 'block', margin: '0 auto 12px', padding: '6px 14px',
-            background: '#2a2a2a', color: '#aaa', border: 'none', borderRadius: 6,
-            cursor: 'pointer', fontSize: 13,
+            display: 'block', margin: '14px auto',
+            width: 36, height: 36, padding: 0,
+            background: '#2c2c2e', color: '#f5f5f7',
+            border: 'none', borderRadius: '50%',
+            cursor: 'pointer', fontSize: 18, lineHeight: '36px',
           }}
-        >↑↓ Swap</button>
+        >⇅</button>
 
-        <label style={{ display: 'block', fontSize: 12, color: '#888', marginBottom: 4 }}>TO</label>
-        <select
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          style={{
-            width: '100%', padding: 12, fontSize: 16, marginBottom: 16,
-            background: '#0a0a0a', color: '#fff', border: '1px solid #333', borderRadius: 8,
-          }}
-        >
-          <option value="milano-all">🏙️ Milan (all stations)</option>
+        <label style={labelStyle}>To</label>
+        <select value={to} onChange={(e) => setTo(e.target.value)} style={{ ...selectStyle, marginBottom: 20 }}>
+          <option value="milano-all">Milan (all stations)</option>
           {STATION_LIST.map(s => <option key={s.slug} value={s.slug}>{s.name}</option>)}
         </select>
 
         <button
           type="submit"
           style={{
-            width: '100%', padding: 14, fontSize: 16, fontWeight: 700,
-            background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8,
-            cursor: 'pointer',
+            width: '100%', padding: '16px', fontSize: 17, fontWeight: 600,
+            background: '#0a84ff', color: '#fff',
+            border: 'none', borderRadius: 12,
+            cursor: 'pointer', letterSpacing: '-0.01em',
           }}
-        >🔍 Search trains</button>
+        >Search</button>
 
         {error && (
           <div style={{
-            marginTop: 12, padding: 10, background: '#3a1a1a',
-            color: '#fca5a5', borderRadius: 8, fontSize: 13,
-            border: '1px solid #5a2020',
+            marginTop: 14, padding: '12px 14px',
+            background: 'rgba(255, 69, 58, 0.12)',
+            color: '#ff6961', borderRadius: 10, fontSize: 13,
+            lineHeight: 1.4,
           }}>
             {error}
           </div>
         )}
       </form>
 
-      <details style={{ background: '#1a1a1a', padding: 12, borderRadius: 10, border: '1px solid #2a2a2a' }}>
-        <summary style={{ cursor: 'pointer', color: '#aaa', fontSize: 13 }}>
-          Or pick a departure station →
+      <details style={{
+        background: '#1c1c1e', padding: '14px 16px',
+        borderRadius: 14,
+      }}>
+        <summary style={{
+          cursor: 'pointer', color: 'rgba(235, 235, 245, 0.6)',
+          fontSize: 14, fontWeight: 500, listStyle: 'none',
+        }}>
+          Browse by station
         </summary>
-        <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+        <div style={{ display: 'grid', gap: 6, marginTop: 14 }}>
           <Link
             href="/stazione/milano-all"
             style={{
-              padding: '10px 12px', background: '#1a2942',
-              borderRadius: 6, textDecoration: 'none', color: '#fff', fontSize: 14,
-              border: '1px solid #3b82f6', fontWeight: 600,
+              padding: '13px 14px', background: '#2c2c2e',
+              borderRadius: 10, textDecoration: 'none',
+              color: '#f5f5f7', fontSize: 15, fontWeight: 500,
             }}
           >
-            🏙️ Milan (all stations)
+            Milan (all stations)
           </Link>
           {STATION_LIST.map(s => (
             <Link
               key={s.slug}
               href={`/stazione/${s.slug}`}
               style={{
-                padding: '10px 12px', background: '#0a0a0a',
-                borderRadius: 6, textDecoration: 'none', color: '#fff', fontSize: 14,
-                border: '1px solid #2a2a2a',
+                padding: '13px 14px', background: '#2c2c2e',
+                borderRadius: 10, textDecoration: 'none',
+                color: '#f5f5f7', fontSize: 15, fontWeight: 500,
               }}
             >
               {s.name}

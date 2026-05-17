@@ -62,30 +62,32 @@ export default function InstallPrompt() {
     <div
       style={{
         position: 'fixed',
-        bottom: 90,
+        bottom: 92,
         left: 12,
         right: 12,
-        background: '#1a1a1a',
-        border: '1px solid #3b82f6',
-        borderRadius: 12,
-        padding: '12px 14px',
-        color: '#fff',
-        boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+        background: 'rgba(28, 28, 30, 0.92)',
+        backdropFilter: 'saturate(180%) blur(20px)',
+        WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        borderRadius: 14,
+        padding: '14px 16px',
+        color: '#f5f5f7',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
         zIndex: 100,
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
         maxWidth: 616,
         margin: '0 auto',
+        letterSpacing: '-0.01em',
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>📲 Install Occhio</div>
+        <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2 }}>Install Occhio</div>
         {installEvent ? (
-          <div style={{ fontSize: 11, color: '#aaa' }}>One tap to add it to your home screen.</div>
+          <div style={{ fontSize: 12, color: 'rgba(235, 235, 245, 0.6)' }}>One tap to add it to your home screen.</div>
         ) : (
-          <div style={{ fontSize: 11, color: '#aaa' }}>
-            Tap <span style={{ fontWeight: 700, color: '#fff' }}>Share</span> → <span style={{ fontWeight: 700, color: '#fff' }}>Add to Home Screen</span>
+          <div style={{ fontSize: 12, color: 'rgba(235, 235, 245, 0.6)' }}>
+            Tap <span style={{ fontWeight: 600, color: '#f5f5f7' }}>Share</span> → <span style={{ fontWeight: 600, color: '#f5f5f7' }}>Add to Home Screen</span>
           </div>
         )}
       </div>
@@ -93,13 +95,13 @@ export default function InstallPrompt() {
         <button
           onClick={install}
           style={{
-            padding: '8px 14px',
-            background: '#dc2626',
+            padding: '8px 16px',
+            background: '#0a84ff',
             color: '#fff',
             border: 'none',
-            borderRadius: 8,
-            fontWeight: 700,
-            fontSize: 13,
+            borderRadius: 10,
+            fontWeight: 600,
+            fontSize: 14,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
           }}
@@ -112,7 +114,7 @@ export default function InstallPrompt() {
         aria-label="Close"
         style={{
           background: 'transparent',
-          color: '#888',
+          color: 'rgba(235, 235, 245, 0.5)',
           border: 'none',
           fontSize: 22,
           lineHeight: 1,

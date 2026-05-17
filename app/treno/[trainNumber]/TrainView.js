@@ -31,7 +31,7 @@ function getDeviceId() {
 }
 
 const COOLDOWN_MS = 15 * 60 * 1000;
-const UNDO_WINDOW_MS = 2 * 60 * 1000; // 2 minutes to undo
+const UNDO_WINDOW_MS = 2 * 60 * 1000;
 
 export default function TrainView({ trainNumber }) {
   const [count, setCount] = useState(0);
@@ -70,7 +70,6 @@ export default function TrainView({ trainNumber }) {
   useEffect(() => {
     loadCount();
     loadStops();
-    // restore last report info from localStorage if still within undo window
     const storedId = localStorage.getItem(`last_report_id_${trainNumber}`);
     const storedTime = parseInt(localStorage.getItem(`last_report_${trainNumber}`) || '0', 10);
     if (storedId && Date.now() - storedTime < UNDO_WINDOW_MS) {
@@ -111,7 +110,7 @@ export default function TrainView({ trainNumber }) {
       localStorage.setItem(`last_report_id_${trainNumber}`, data.id);
       setLastReportId(data.id);
       setLastReportTime(now);
-      setMessage('Report sent. Thank you!');
+      setMessage('Report sent. Thank you.');
       loadCount();
     }
     setSubmitting(false);
@@ -146,21 +145,30 @@ export default function TrainView({ trainNumber }) {
 
   return (
     <main>
-      <Link href="/" style={{ color: '#888', textDecoration: 'none' }}>← Home</Link>
-      <h1 style={{ fontSize: 32, margin: '12px 0 4px' }}>Train {trainNumber}</h1>
+      <Link href="/" style={{
+        color: '#0a84ff', textDecoration: 'none', fontSize: 15, fontWeight: 500,
+      }}>‹ Home</Link>
+      <h1 style={{
+        fontSize: 34, fontWeight: 700, margin: '16px 0 4px',
+        letterSpacing: '-0.03em',
+      }}>Train {trainNumber}</h1>
       {info && (
-        <p style={{ color: '#aaa', margin: '0 0 4px', fontSize: 14 }}>
+        <p style={{ color: 'rgba(235, 235, 245, 0.7)', margin: '0 0 6px', fontSize: 15 }}>
           {info.origin} → {info.destination}
           {info.category && <span style={{
-            marginLeft: 8, padding: '2px 6px', background: '#2a2a2a',
-            borderRadius: 4, fontSize: 11, color: '#aaa',
+            marginLeft: 10, fontSize: 11, fontWeight: 600,
+            color: 'rgba(235, 235, 245, 0.6)',
+            letterSpacing: '0.05em', textTransform: 'uppercase',
           }}>{info.category}</span>}
         </p>
       )}
       {info && info.delay !== 0 && (
-        <p style={{ color: info.delay > 0 ? '#fb923c' : '#4ade80', margin: '4px 0', fontSize: 13 }}>
+        <p style={{
+          color: info.delay > 0 ? '#ff9f0a' : '#30d158',
+          margin: '4px 0', fontSize: 13, fontWeight: 500,
+        }}>
           {info.delay > 0 ? `Delayed by ${info.delay}′` : `${-info.delay}′ early`}
-          {info.lastLocation && <span style={{ color: '#888' }}> · Last seen: {info.lastLocation}</span>}
+          {info.lastLocation && <span style={{ color: 'rgba(235, 235, 245, 0.5)', fontWeight: 400 }}> · Last seen: {info.lastLocation}</span>}
         </p>
       )}
 
@@ -170,11 +178,15 @@ export default function TrainView({ trainNumber }) {
         const fromName = fromSlug ? STATIONS[fromSlug].name : titleCase(info.origin);
         const toName = toSlug ? STATIONS[toSlug].name : titleCase(info.destination);
         return (
-          <div style={{ margin: '12px 0 8px' }}>
-            <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>
-              🎫 Buy a ticket
+          <div style={{ margin: '16px 0 8px' }}>
+            <div style={{
+              fontSize: 11, fontWeight: 600,
+              color: 'rgba(235, 235, 245, 0.6)', marginBottom: 8,
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>
+              Buy a ticket
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {getBuyLinks(fromSlug, toSlug, fromName, toName).map((link, i) => (
                 <a
                   key={i}
@@ -182,9 +194,9 @@ export default function TrainView({ trainNumber }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    padding: '6px 10px', fontSize: 12, fontWeight: 600,
-                    background: '#1a1a1a', borderRadius: 6, textDecoration: 'none',
-                    color: '#7dd3fc', border: '1px solid #2a2a2a',
+                    padding: '8px 14px', fontSize: 13, fontWeight: 600,
+                    background: '#1c1c1e', borderRadius: 10, textDecoration: 'none',
+                    color: '#0a84ff',
                   }}
                 >
                   {link.label}
@@ -195,16 +207,27 @@ export default function TrainView({ trainNumber }) {
         );
       })()}
 
-      <p style={{ color: '#aaa', margin: '12px 0 20px', fontSize: 14 }}>Report if you see an inspector on board.</p>
+      <p style={{
+        color: 'rgba(235, 235, 245, 0.6)',
+        margin: '20px 0 16px', fontSize: 14, lineHeight: 1.4,
+      }}>Report if you see an inspector on board.</p>
 
       <div style={{
-        padding: 20, background: '#1a1a1a', borderRadius: 12, marginBottom: 20, textAlign: 'center',
+        padding: 22, background: '#1c1c1e', borderRadius: 16,
+        marginBottom: 16, textAlign: 'center',
       }}>
-        <div style={{ fontSize: 13, color: '#888' }}>Alert level (last hour)</div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: lvl.color, marginTop: 4 }}>
-          {lvl.emoji} {lvl.label}
+        <div style={{
+          fontSize: 11, fontWeight: 600,
+          color: 'rgba(235, 235, 245, 0.6)',
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>Alert level · last hour</div>
+        <div style={{
+          fontSize: 32, fontWeight: 700, color: lvl.color,
+          marginTop: 6, letterSpacing: '-0.02em',
+        }}>
+          {lvl.label}
         </div>
-        <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
+        <div style={{ color: 'rgba(235, 235, 245, 0.5)', fontSize: 13, marginTop: 4 }}>
           {count} report{count === 1 ? '' : 's'}
         </div>
       </div>
@@ -213,13 +236,15 @@ export default function TrainView({ trainNumber }) {
         onClick={submit}
         disabled={submitting || canUndo}
         style={{
-          width: '100%', padding: '20px', fontSize: 18, fontWeight: 700,
-          background: canUndo ? '#444' : '#dc2626', color: '#fff', border: 'none', borderRadius: 12,
+          width: '100%', padding: '18px', fontSize: 17, fontWeight: 600,
+          background: canUndo ? '#3a3a3c' : '#ff453a', color: '#fff',
+          border: 'none', borderRadius: 14,
           cursor: (submitting || canUndo) ? 'not-allowed' : 'pointer',
           opacity: submitting ? 0.6 : 1,
+          letterSpacing: '-0.01em',
         }}
       >
-        🚨 Inspector on board
+        Inspector on board
       </button>
 
       {canUndo && (
@@ -228,44 +253,52 @@ export default function TrainView({ trainNumber }) {
           disabled={submitting}
           style={{
             width: '100%', marginTop: 10, padding: '14px', fontSize: 15, fontWeight: 600,
-            background: 'transparent', color: '#fbbf24', border: '2px solid #fbbf24',
-            borderRadius: 12, cursor: submitting ? 'not-allowed' : 'pointer',
+            background: 'transparent', color: '#ff9f0a',
+            border: '1.5px solid #ff9f0a',
+            borderRadius: 14, cursor: submitting ? 'not-allowed' : 'pointer',
           }}
         >
-          👀 Undo report ({undoSecondsLeft}s)
+          👀 Undo report · {undoSecondsLeft}s
         </button>
       )}
 
       {message && (
-        <p style={{ marginTop: 16, padding: 12, background: '#1a1a1a', borderRadius: 8, color: '#aaa', textAlign: 'center' }}>
+        <p style={{
+          marginTop: 14, padding: 12, background: '#1c1c1e',
+          borderRadius: 10, color: 'rgba(235, 235, 245, 0.7)',
+          textAlign: 'center', fontSize: 14,
+        }}>
           {message}
         </p>
       )}
 
-      <h2 style={{ fontSize: 18, marginTop: 32, marginBottom: 12 }}>Stops</h2>
-      {stopsLoading && <div style={{ color: '#888', padding: 12 }}>Loading stops…</div>}
+      <h2 style={{
+        fontSize: 20, fontWeight: 700, marginTop: 32, marginBottom: 12,
+        letterSpacing: '-0.02em',
+      }}>Stops</h2>
+      {stopsLoading && <div style={{ color: 'rgba(235, 235, 245, 0.4)', padding: 12 }}>Loading stops…</div>}
       {!stopsLoading && stops.length === 0 && (
-        <div style={{ color: '#888', padding: 12, fontSize: 13 }}>
+        <div style={{ color: 'rgba(235, 235, 245, 0.5)', padding: 12, fontSize: 13 }}>
           Stops not available for this train.
         </div>
       )}
-      <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+      <ol style={{ listStyle: 'none', padding: 0, margin: 0, background: '#1c1c1e', borderRadius: 14, overflow: 'hidden' }}>
         {stops.map((s, i) => {
           const time = s.actualDeparture || s.scheduledDeparture || s.actualArrival || s.scheduledArrival || '';
           const delayed = s.actualDeparture && s.scheduledDeparture && s.actualDeparture !== s.scheduledDeparture;
           return (
             <li key={i} style={{
-              padding: '12px 14px', background: '#1a1a1a', borderRadius: 8,
-              marginBottom: 6, border: '1px solid #2a2a2a',
+              padding: '14px 16px',
+              borderBottom: i < stops.length - 1 ? '0.5px solid rgba(255,255,255,0.08)' : 'none',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{s.name}</div>
-                {s.platform && <div style={{ color: '#666', fontSize: 11 }}>Plat. {s.platform}</div>}
+                <div style={{ fontWeight: 500, fontSize: 15 }}>{s.name}</div>
+                {s.platform && <div style={{ color: 'rgba(235, 235, 245, 0.4)', fontSize: 11, marginTop: 2 }}>Platform {s.platform}</div>}
               </div>
-              <div style={{ fontSize: 14, color: delayed ? '#fb923c' : '#aaa', fontWeight: 500 }}>
+              <div style={{ fontSize: 15, color: delayed ? '#ff9f0a' : 'rgba(235, 235, 245, 0.7)', fontWeight: 500 }}>
                 {time}
-                {delayed && s.scheduledDeparture && <span style={{ color: '#666', textDecoration: 'line-through', marginLeft: 6, fontSize: 11 }}>{s.scheduledDeparture}</span>}
+                {delayed && s.scheduledDeparture && <span style={{ color: 'rgba(235, 235, 245, 0.3)', textDecoration: 'line-through', marginLeft: 6, fontSize: 11 }}>{s.scheduledDeparture}</span>}
               </div>
             </li>
           );

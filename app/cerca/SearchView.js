@@ -120,8 +120,8 @@ export default function SearchView({ fromSlug, toSlug }) {
   if (!fromStation || !toStation) {
     return (
       <main>
-        <Link href="/" style={{ color: '#888' }}>← Home</Link>
-        <p>Invalid stations.</p>
+        <Link href="/" style={{ color: '#0a84ff', textDecoration: 'none' }}>‹ Home</Link>
+        <p style={{ color: 'rgba(235, 235, 245, 0.6)' }}>Invalid stations.</p>
       </main>
     );
   }
@@ -132,37 +132,46 @@ export default function SearchView({ fromSlug, toSlug }) {
 
   return (
     <main>
-      <Link href="/" style={{ color: '#888', textDecoration: 'none' }}>← Search</Link>
-      <h1 style={{ fontSize: 22, margin: '12px 0 4px' }}>
+      <Link href="/" style={{
+        color: '#0a84ff', textDecoration: 'none', fontSize: 15, fontWeight: 500,
+      }}>‹ Search</Link>
+      <h1 style={{
+        fontSize: 26, fontWeight: 700, margin: '16px 0 4px',
+        letterSpacing: '-0.025em',
+      }}>
         {fromStation.name} → {toStation.name}
       </h1>
-      <p style={{ color: '#aaa', fontSize: 13, margin: '0 0 4px' }}>
-        Real-time departures
-        {updatedAt && <> · updated {updatedAt.toLocaleTimeString('en-GB').slice(0,5)}</>}
+      <p style={{ color: 'rgba(235, 235, 245, 0.6)', fontSize: 14, margin: '0 0 4px' }}>
+        Live departures
+        {updatedAt && <> · {updatedAt.toLocaleTimeString('en-GB').slice(0,5)}</>}
       </p>
-      <p style={{ color: '#555', fontSize: 11, margin: '0 0 16px' }}>
+      <p style={{ color: 'rgba(235, 235, 245, 0.3)', fontSize: 12, margin: '0 0 20px' }}>
         {matched.length > 0 && !showAll
-          ? `${matched.length} trains to ${toStation.name}`
+          ? `${matched.length} train${matched.length === 1 ? '' : 's'} to ${toStation.name}`
           : `All departures from ${fromStation.name}`}
       </p>
 
       {noMatchButHasTrains && (
-        <div style={{ background: '#1a1a1a', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 13, color: '#aaa', border: '1px solid #2a2a2a' }}>
+        <div style={{
+          background: '#1c1c1e', padding: '12px 14px', borderRadius: 12,
+          marginBottom: 14, fontSize: 13,
+          color: 'rgba(235, 235, 245, 0.6)', lineHeight: 1.4,
+        }}>
           No direct route between these stations. Showing all departures from {fromStation.name} — you may need to change trains.
         </div>
       )}
 
-      {loading && <div style={{ color: '#888', padding: 24, textAlign: 'center' }}>Loading…</div>}
+      {loading && <div style={{ color: 'rgba(235, 235, 245, 0.4)', padding: 32, textAlign: 'center' }}>Loading…</div>}
 
       {!loading && allTrains.length === 0 && (
-        <div style={{ background: '#1a1a1a', padding: 24, borderRadius: 12, textAlign: 'center', color: '#888' }}>
+        <div style={{ background: '#1c1c1e', padding: 32, borderRadius: 14, textAlign: 'center', color: 'rgba(235, 235, 245, 0.6)' }}>
           No upcoming trains. Try again later.
         </div>
       )}
 
       {error && (
-        <div style={{ background: '#3a1a1a', color: '#fca5a5', padding: 12, borderRadius: 8, fontSize: 12 }}>
-          Error: {error}
+        <div style={{ background: 'rgba(255, 69, 58, 0.12)', color: '#ff6961', padding: 14, borderRadius: 12, fontSize: 13 }}>
+          {error}
         </div>
       )}
 
@@ -170,8 +179,10 @@ export default function SearchView({ fromSlug, toSlug }) {
         <button
           onClick={() => setShowAll(s => !s)}
           style={{
-            background: 'transparent', color: '#7dd3fc', border: '1px solid #2a2a2a',
-            padding: '6px 10px', borderRadius: 6, fontSize: 12, marginBottom: 12, cursor: 'pointer',
+            background: 'transparent', color: '#0a84ff',
+            border: '1px solid rgba(10, 132, 255, 0.3)',
+            padding: '7px 12px', borderRadius: 8, fontSize: 13,
+            fontWeight: 500, marginBottom: 14, cursor: 'pointer',
           }}
         >
           {showAll ? `Only to ${toStation.name}` : 'Show all departures'}
@@ -185,67 +196,73 @@ export default function SearchView({ fromSlug, toSlug }) {
           const isCancelled = !!t.cancelled;
           return (
             <Link
-              key={t.train_number + t.departure_time}
+              key={t.train_number + t.departure_time + (t.from_label || '')}
               href={`/treno/${t.train_number}`}
               style={{
-                display: 'block', padding: 14,
-                background: isCancelled ? '#181010' : '#1a1a1a',
-                borderRadius: 10,
-                border: isCancelled ? '1px solid #5a2020' : '1px solid #2a2a2a',
+                display: 'block', padding: 16,
+                background: isCancelled ? '#1a1414' : '#1c1c1e',
+                borderRadius: 14,
                 textDecoration: 'none',
-                color: isCancelled ? '#888' : '#fff',
-                opacity: isCancelled ? 0.7 : 1,
+                color: isCancelled ? 'rgba(235, 235, 245, 0.4)' : '#f5f5f7',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                   <span style={{
-                    fontWeight: 700, fontSize: 16,
+                    fontWeight: 700, fontSize: 17, letterSpacing: '-0.02em',
                     textDecoration: isCancelled ? 'line-through' : 'none',
                   }}>{t.train_number}</span>
                   {t.type && <span style={{
-                    marginLeft: 8, padding: '2px 6px', background: '#2a2a2a',
-                    borderRadius: 4, fontSize: 11, color: '#aaa',
+                    fontSize: 10, fontWeight: 600,
+                    color: 'rgba(235, 235, 245, 0.6)',
+                    letterSpacing: '0.05em', textTransform: 'uppercase',
                   }}>{t.type}</span>}
-                  {isCancelled && <span style={{
-                    marginLeft: 8, padding: '2px 6px', background: '#5a2020',
-                    borderRadius: 4, fontSize: 11, color: '#fca5a5', fontWeight: 700,
-                  }}>CANCELLED</span>}
                 </div>
                 <div style={{
-                  fontSize: 18, fontWeight: 600,
+                  fontSize: 19, fontWeight: 600, letterSpacing: '-0.02em',
                   textDecoration: isCancelled ? 'line-through' : 'none',
                 }}>
                   {t.departure_time}
-                  {!isCancelled && t.delay_minutes > 0 && <span style={{ color: '#fb923c', marginLeft: 6, fontSize: 13 }}>+{t.delay_minutes}′</span>}
-                  {!isCancelled && t.delay_minutes < 0 && <span style={{ color: '#4ade80', marginLeft: 6, fontSize: 13 }}>{t.delay_minutes}′</span>}
+                  {!isCancelled && t.delay_minutes > 0 && <span style={{ color: '#ff9f0a', marginLeft: 6, fontSize: 13, fontWeight: 500 }}>+{t.delay_minutes}′</span>}
+                  {!isCancelled && t.delay_minutes < 0 && <span style={{ color: '#30d158', marginLeft: 6, fontSize: 13, fontWeight: 500 }}>{t.delay_minutes}′</span>}
                 </div>
               </div>
-              <div style={{ color: isCancelled ? '#666' : '#aaa', fontSize: 13, marginTop: 4 }}>
-                → {t.destination}
-                {t.platform && !isCancelled && <span style={{ marginLeft: 8, color: '#666' }}>Plat. {t.platform}</span>}
+              <div style={{
+                color: isCancelled ? 'rgba(235, 235, 245, 0.3)' : 'rgba(235, 235, 245, 0.7)',
+                fontSize: 14, marginTop: 6, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8,
+              }}>
+                <span>→ {t.destination}</span>
+                {t.platform && !isCancelled && <span style={{ color: 'rgba(235, 235, 245, 0.4)' }}>Plat. {t.platform}</span>}
                 {t.from_label && <span style={{
-                  marginLeft: 8, padding: '1px 6px', background: '#1a2942',
-                  borderRadius: 4, fontSize: 11, color: '#7dd3fc',
+                  padding: '2px 8px', background: 'rgba(10, 132, 255, 0.15)',
+                  borderRadius: 6, fontSize: 11, color: '#0a84ff', fontWeight: 600,
                 }}>from {t.from_label}</span>}
               </div>
-              {!isCancelled && (count > 0 ? (
+              {isCancelled ? (
                 <div style={{
-                  marginTop: 8, display: 'inline-block', padding: '3px 8px',
-                  background: lvl.color + '22', color: lvl.color, borderRadius: 4,
+                  marginTop: 10, display: 'inline-block', padding: '3px 10px',
+                  background: 'rgba(255, 69, 58, 0.15)', color: '#ff6961',
+                  borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
+                }}>
+                  CANCELLED
+                </div>
+              ) : count > 0 ? (
+                <div style={{
+                  marginTop: 10, display: 'inline-block', padding: '3px 10px',
+                  background: lvl.color + '22', color: lvl.color, borderRadius: 6,
                   fontSize: 12, fontWeight: 600,
                 }}>
-                  {lvl.emoji} {lvl.label} · {count}
+                  {lvl.label} · {count}
                 </div>
               ) : (
                 <div style={{
-                  marginTop: 8, display: 'inline-block', padding: '3px 8px',
-                  background: '#2a2a2a', color: '#888', borderRadius: 4,
-                  fontSize: 12, fontWeight: 600,
+                  marginTop: 10, display: 'inline-block', padding: '3px 10px',
+                  background: 'rgba(235, 235, 245, 0.08)', color: 'rgba(235, 235, 245, 0.5)',
+                  borderRadius: 6, fontSize: 12, fontWeight: 500,
                 }}>
-                  ⚪ No data
+                  No reports
                 </div>
-              ))}
+              )}
             </Link>
           );
         })}
