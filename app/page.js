@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { STATION_LIST } from '@/lib/stations';
+import QuickReport from './QuickReport';
 
 const isSpecificMilanStation = (slug) => slug && slug.startsWith('milano-') && slug !== 'milano-all';
 
@@ -80,11 +81,13 @@ export default function Home() {
         letterSpacing: '-0.03em',
       }}>Occhio</h1>
       <p style={{
-        color: 'rgba(235, 235, 245, 0.6)', margin: '0 0 28px',
+        color: 'rgba(235, 235, 245, 0.6)', margin: '0 0 24px',
         fontSize: 15, lineHeight: 1.4,
       }}>
         Live train departures and community alerts for Lombardy.
       </p>
+
+      <QuickReport />
 
       <form onSubmit={search} style={{
         background: '#1c1c1e', padding: '20px 18px',
