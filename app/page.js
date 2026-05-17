@@ -116,6 +116,25 @@ export default function Home() {
         )}
       </form>
 
+      <Link
+        href="/bus"
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 18px', background: '#1c1c1e', borderRadius: 14,
+          textDecoration: 'none', color: '#f5f5f7', marginBottom: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 16, letterSpacing: '-0.01em' }}>
+            Buses · Pavia
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(235, 235, 245, 0.6)', marginTop: 2 }}>
+            Autoguidovie urban + suburban lines
+          </div>
+        </div>
+        <div style={{ color: 'rgba(235, 235, 245, 0.3)', fontSize: 20 }}>›</div>
+      </Link>
+
       <details style={{
         background: '#1c1c1e', padding: '14px 16px',
         borderRadius: 14,
