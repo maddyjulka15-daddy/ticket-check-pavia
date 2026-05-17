@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { STATION_LIST } from '@/lib/stations';
@@ -30,6 +30,21 @@ export default function Home() {
   const [from, setFrom] = useState('milano-centrale');
   const [to, setTo] = useState('pavia');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const savedFrom = localStorage.getItem('last_from');
+    const savedTo = localStorage.getItem('last_to');
+    if (savedFrom) setFrom(savedFrom);
+    if (savedTo) setTo(savedTo);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('last_from', from);
+  }, [from]);
+
+  useEffect(() => {
+    localStorage.setItem('last_to', to);
+  }, [to]);
 
   function search(e) {
     e.preventDefault();
