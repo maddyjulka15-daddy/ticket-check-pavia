@@ -78,12 +78,10 @@ export async function GET(_req, { params }) {
     clearReportsForCancelled([...new Set(cancelledNumbers)]).catch(() => {});
   }
 
-  // Filter out cancelled from visible list (or keep with a flag — your choice)
-  const visible = merged.filter(t => !t.cancelled);
-  visible.sort((a, b) => (a.departure_ts || 0) - (b.departure_ts || 0));
+  merged.sort((a, b) => (a.departure_ts || 0) - (b.departure_ts || 0));
 
   return Response.json({
-    trains: visible,
+    trains: merged,
     cancelled_count: cancelledNumbers.length,
     fetched_at: now.toISOString(),
   });

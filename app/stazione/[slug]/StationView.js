@@ -89,35 +89,50 @@ export default function StationView({ slug, station }) {
           const count = reports[t.train_number] || 0;
           const lvl = alertLevel(count);
           const delay = t.delay_minutes;
+          const isCancelled = !!t.cancelled;
           return (
             <Link
               key={t.train_number + t.departure_time}
               href={`/treno/${t.train_number}`}
               style={{
-                display: 'block', padding: 14, background: '#1a1a1a',
-                borderRadius: 10, border: '1px solid #2a2a2a',
-                textDecoration: 'none', color: '#fff',
+                display: 'block', padding: 14,
+                background: isCancelled ? '#181010' : '#1a1a1a',
+                borderRadius: 10,
+                border: isCancelled ? '1px solid #5a2020' : '1px solid #2a2a2a',
+                textDecoration: 'none',
+                color: isCancelled ? '#888' : '#fff',
+                opacity: isCancelled ? 0.7 : 1,
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <span style={{ fontWeight: 700, fontSize: 18 }}>{t.train_number}</span>
+                  <span style={{
+                    fontWeight: 700, fontSize: 18,
+                    textDecoration: isCancelled ? 'line-through' : 'none',
+                  }}>{t.train_number}</span>
                   {t.type && <span style={{
                     marginLeft: 8, padding: '2px 6px', background: '#2a2a2a',
                     borderRadius: 4, fontSize: 11, color: '#aaa',
                   }}>{t.type}</span>}
+                  {isCancelled && <span style={{
+                    marginLeft: 8, padding: '2px 6px', background: '#5a2020',
+                    borderRadius: 4, fontSize: 11, color: '#fca5a5', fontWeight: 700,
+                  }}>CANCELLED</span>}
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 600 }}>
+                <div style={{
+                  fontSize: 18, fontWeight: 600,
+                  textDecoration: isCancelled ? 'line-through' : 'none',
+                }}>
                   {t.departure_time}
-                  {delay > 0 && <span style={{ color: '#fb923c', marginLeft: 6, fontSize: 13 }}>+{delay}′</span>}
-                  {delay < 0 && <span style={{ color: '#4ade80', marginLeft: 6, fontSize: 13 }}>{delay}′</span>}
+                  {!isCancelled && delay > 0 && <span style={{ color: '#fb923c', marginLeft: 6, fontSize: 13 }}>+{delay}′</span>}
+                  {!isCancelled && delay < 0 && <span style={{ color: '#4ade80', marginLeft: 6, fontSize: 13 }}>{delay}′</span>}
                 </div>
               </div>
-              <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
+              <div style={{ color: isCancelled ? '#666' : '#aaa', fontSize: 13, marginTop: 4 }}>
                 → {t.destination}
-                {t.platform && <span style={{ marginLeft: 8, color: '#666' }}>Plat. {t.platform}</span>}
+                {t.platform && !isCancelled && <span style={{ marginLeft: 8, color: '#666' }}>Plat. {t.platform}</span>}
               </div>
-              {count > 0 ? (
+              {!isCancelled && (count > 0 ? (
                 <div style={{
                   marginTop: 8, display: 'inline-block', padding: '3px 8px',
                   background: lvl.color + '22', color: lvl.color, borderRadius: 4,
@@ -133,7 +148,7 @@ export default function StationView({ slug, station }) {
                 }}>
                   ⚪ No data
                 </div>
-              )}
+              ))}
             </Link>
           );
         })}
