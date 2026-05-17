@@ -5,22 +5,31 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { STATION_LIST } from '@/lib/stations';
 
+const isSpecificMilanStation = (slug) => slug && slug.startsWith('milano-') && slug !== 'milano-all';
+
 export default function Home() {
   const router = useRouter();
   const [from, setFrom] = useState('milano-centrale');
   const [to, setTo] = useState('pavia');
+  const [error, setError] = useState('');
 
   function search(e) {
     e.preventDefault();
-    if (from === to) return;
-    if (from === 'milano-all' || to === 'milano-all') {
-      router.push('/stazione/milano-all');
+    setError('');
+    if (from === to) {
+      setError("FROM and TO can't be the same.");
+      return;
+    }
+    if ((from === 'milano-all' && isSpecificMilanStation(to)) ||
+        (to === 'milano-all' && isSpecificMilanStation(from))) {
+      setError("'Milan (all stations)' can't be combined with a specific Milan station. Pick a non-Milan destination.");
       return;
     }
     router.push(`/cerca?from=${from}&to=${to}`);
   }
 
   function swap() {
+    setError('');
     setFrom(to);
     setTo(from);
   }
@@ -80,6 +89,16 @@ export default function Home() {
             cursor: 'pointer',
           }}
         >🔍 Search trains</button>
+
+        {error && (
+          <div style={{
+            marginTop: 12, padding: 10, background: '#3a1a1a',
+            color: '#fca5a5', borderRadius: 8, fontSize: 13,
+            border: '1px solid #5a2020',
+          }}>
+            {error}
+          </div>
+        )}
       </form>
 
       <details style={{ background: '#1a1a1a', padding: 12, borderRadius: 10, border: '1px solid #2a2a2a' }}>

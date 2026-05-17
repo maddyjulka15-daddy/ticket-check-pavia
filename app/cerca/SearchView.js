@@ -10,9 +10,28 @@ const TOWARD_PAVIA = ['pavia','voghera','mortara','alessandria','genova','sestri
 const TOWARD_MILANO = ['milano','centrale','garibaldi','rogoredo','bovisa','greco','lambrate','cadorna','domodossola','luino','varese','como','lecco','sondrio','tirano','bergamo','brescia','verona','venezia','bologna','garbagnate'];
 const TOWARD_MALPENSA = ['malpensa','aeroporto','t1','t2','gallarate','busto','arsizio','rho','saronno','luino','laveno'];
 
+const MILAN_ALL = {
+  name: 'Milan (all stations)',
+  multi: [
+    { code: 'S01700', label: 'Centrale' },
+    { code: 'S01645', label: 'P.Garibaldi' },
+    { code: 'S01820', label: 'Rogoredo' },
+    { code: 'S01066', label: 'Cadorna' },
+    { code: 'S01642', label: 'Bovisa' },
+  ],
+};
+
+function resolveStation(slug) {
+  if (slug === 'milano-all') return MILAN_ALL;
+  return STATIONS[slug];
+}
+
 function matchesDestination(destination, toSlug, toName) {
   if (!destination) return false;
   const d = destination.toLowerCase();
+  if (toSlug === 'milano-all') {
+    return TOWARD_MILANO.some(k => d.includes(k));
+  }
   const tName = (toName || '').toLowerCase();
   if (tName.length > 3 && d.includes(tName)) return true;
   if (toSlug === 'pavia' || toSlug === 'voghera' || toSlug === 'mortara') {
@@ -28,8 +47,8 @@ function matchesDestination(destination, toSlug, toName) {
 }
 
 export default function SearchView({ fromSlug, toSlug }) {
-  const fromStation = STATIONS[fromSlug];
-  const toStation = STATIONS[toSlug];
+  const fromStation = resolveStation(fromSlug);
+  const toStation = resolveStation(toSlug);
   const [allTrains, setAllTrains] = useState([]);
   const [reports, setReports] = useState({});
   const [loading, setLoading] = useState(true);
@@ -44,9 +63,30 @@ export default function SearchView({ fromSlug, toSlug }) {
       return;
     }
     try {
-      const res = await fetch(`/api/departures/${fromStation.code}`, { cache: 'no-store' });
-      const data = await res.json();
-      setAllTrains(data.trains || []);
+      if (fromStation.multi) {
+        const results = await Promise.all(
+          fromStation.multi.map(async ({ code, label }) => {
+            const res = await fetch(`/api/departures/${code}`, { cache: 'no-store' });
+            const data = await res.json();
+            return (data.trains || []).map(t => ({ ...t, from_label: label }));
+          })
+        );
+        const merged = results.flat();
+        const seen = new Set();
+        const unique = [];
+        for (const t of merged) {
+          const key = `${t.train_number}-${t.departure_ts}-${t.from_label}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          unique.push(t);
+        }
+        unique.sort((a, b) => (a.departure_ts || 0) - (b.departure_ts || 0));
+        setAllTrains(unique);
+      } else {
+        const res = await fetch(`/api/departures/${fromStation.code}`, { cache: 'no-store' });
+        const data = await res.json();
+        setAllTrains(data.trains || []);
+      }
       setUpdatedAt(new Date());
       setError(null);
     } catch (e) {
@@ -184,6 +224,10 @@ export default function SearchView({ fromSlug, toSlug }) {
               <div style={{ color: isCancelled ? '#666' : '#aaa', fontSize: 13, marginTop: 4 }}>
                 → {t.destination}
                 {t.platform && !isCancelled && <span style={{ marginLeft: 8, color: '#666' }}>Plat. {t.platform}</span>}
+                {t.from_label && <span style={{
+                  marginLeft: 8, padding: '1px 6px', background: '#1a2942',
+                  borderRadius: 4, fontSize: 11, color: '#7dd3fc',
+                }}>from {t.from_label}</span>}
               </div>
               {!isCancelled && (count > 0 ? (
                 <div style={{
