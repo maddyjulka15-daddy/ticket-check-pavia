@@ -232,7 +232,7 @@ export default function TrainView({ trainNumber }) {
             borderRadius: 12, cursor: submitting ? 'not-allowed' : 'pointer',
           }}
         >
-          ↩️ Undo report ({undoSecondsLeft}s)
+          👀 Undo report ({undoSecondsLeft}s)
         </button>
       )}
 
