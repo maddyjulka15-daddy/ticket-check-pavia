@@ -1,4 +1,6 @@
 import InstallPrompt from './InstallPrompt';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata = {
   title: 'Occhio',
@@ -35,6 +37,8 @@ export default function RootLayout({ children }) {
           {children}
         </div>
         <InstallPrompt />
+        <Analytics />
+        <SpeedInsights />
         <footer style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
           padding: '14px 18px calc(14px + env(safe-area-inset-bottom))',
