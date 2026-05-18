@@ -46,6 +46,19 @@ function matchesDestination(destination, toSlug, toName) {
   return false;
 }
 
+function findMatchingStop(stops, toStationName) {
+  if (!stops || !toStationName) return null;
+  const target = toStationName.toLowerCase().replace(/[.\s]/g, '');
+  for (const s of stops) {
+    const n = (s.name || '').toLowerCase().replace(/[.\s]/g, '');
+    if (!n) continue;
+    if (n === target || n.includes(target) || target.includes(n)) {
+      return s;
+    }
+  }
+  return null;
+}
+
 export default function SearchView({ fromSlug, toSlug }) {
   const fromStation = resolveStation(fromSlug);
   const toStation = resolveStation(toSlug);
@@ -55,6 +68,7 @@ export default function SearchView({ fromSlug, toSlug }) {
   const [error, setError] = useState(null);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [showAll, setShowAll] = useState(false);
+  const [arrivals, setArrivals] = useState({});
 
   const loadTrains = useCallback(async () => {
     if (!fromStation || !toStation) {
@@ -116,6 +130,50 @@ export default function SearchView({ fromSlug, toSlug }) {
       .subscribe();
     return () => { clearInterval(t1); clearInterval(t2); supabase.removeChannel(channel); };
   }, [loadTrains, loadReports]);
+
+  // Enrich each train with arrival time at the destination by fetching its stops.
+  // Throttled to 3 concurrent requests to avoid hammering ViaggiaTreno.
+  useEffect(() => {
+    if (!toStation || !toStation.name || allTrains.length === 0) return;
+    if (toSlug === 'milano-all') return; // No single station to match against.
+
+    let cancelled = false;
+    const toCheck = allTrains.filter(t => !arrivals[t.train_number]);
+    if (toCheck.length === 0) return;
+
+    async function fetchOne(t) {
+      if (cancelled) return;
+      try {
+        const res = await fetch(`/api/train-stops?trainNumber=${t.train_number}`);
+        const data = await res.json();
+        if (cancelled) return;
+        const match = findMatchingStop(data.stops, toStation.name);
+        setArrivals(prev => ({
+          ...prev,
+          [t.train_number]: {
+            passes: !!match,
+            time: match ? (match.actualArrival || match.scheduledArrival || match.actualDeparture || match.scheduledDeparture) : null,
+          },
+        }));
+      } catch {
+        if (!cancelled) {
+          setArrivals(prev => ({ ...prev, [t.train_number]: { passes: false, time: null } }));
+        }
+      }
+    }
+
+    async function processBatches() {
+      const concurrent = 3;
+      const queue = [...toCheck];
+      while (queue.length > 0 && !cancelled) {
+        const batch = queue.splice(0, concurrent);
+        await Promise.all(batch.map(fetchOne));
+      }
+    }
+    processBatches();
+
+    return () => { cancelled = true; };
+  }, [allTrains, toStation, toSlug]);
 
   if (!fromStation || !toStation) {
     return (
@@ -238,6 +296,31 @@ export default function SearchView({ fromSlug, toSlug }) {
                   borderRadius: 6, fontSize: 11, color: '#0a84ff', fontWeight: 600,
                 }}>from {t.from_label}</span>}
               </div>
+              {!isCancelled && (() => {
+                const a = arrivals[t.train_number];
+                if (!a) {
+                  return (
+                    <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(235, 235, 245, 0.35)' }}>
+                      Checking route…
+                    </div>
+                  );
+                }
+                if (a.passes && a.time) {
+                  return (
+                    <div style={{
+                      marginTop: 6, fontSize: 13, fontWeight: 600,
+                      color: '#30d158', display: 'flex', alignItems: 'center', gap: 6,
+                    }}>
+                      Arrives {toStation.name} · {a.time}
+                    </div>
+                  );
+                }
+                return (
+                  <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(235, 235, 245, 0.4)' }}>
+                    Does not stop at {toStation.name}
+                  </div>
+                );
+              })()}
               {isCancelled ? (
                 <div style={{
                   marginTop: 10, display: 'inline-block', padding: '3px 10px',
