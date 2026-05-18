@@ -118,12 +118,12 @@ export default function BusMap({ lineId, color = '#ef4444', direction = null }) 
       <MapContainer
         bounds={bounds}
         boundsOptions={{ padding: [18, 18] }}
-        style={{ height: 260, width: '100%', background: '#1c1c1e' }}
+        style={{ height: 260, width: '100%', background: '#e8e8e8' }}
         scrollWheelZoom={false}
       >
         <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           maxZoom={19}
         />
         <Polyline positions={coords} pathOptions={{ color, weight: 5, opacity: 0.9 }} />
