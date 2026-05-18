@@ -2,7 +2,16 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
+
+const BusMap = dynamic(() => import('./BusMap'), { ssr: false, loading: () => (
+  <div style={{
+    marginTop: 12, height: 260, background: '#1c1c1e',
+    borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: 'rgba(235, 235, 245, 0.4)', fontSize: 13,
+  }}>Loading map…</div>
+)});
 
 function getDeviceId() {
   if (typeof window === 'undefined') return null;
@@ -166,6 +175,8 @@ export default function BusLineView({ line }) {
       >
         Official timetable ↗
       </a>
+
+      <BusMap lineId={line.id} />
 
       <div style={{
         padding: 22, background: '#1c1c1e', borderRadius: 16,
